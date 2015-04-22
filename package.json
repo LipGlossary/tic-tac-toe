@@ -1,0 +1,23 @@
+{
+  "name": "tic-tac-toe",
+  "version": "1.0.0",
+  "description": "A Tic-Tac-Toe AI tournament runner",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LipGlossary/tic-tac-toe.git"
+  },
+  "author": "Annalise Haynes",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LipGlossary/tic-tac-toe/issues"
+  },
+  "homepage": "https://github.com/LipGlossary/tic-tac-toe",
+  "dependencies": {
+    "blessed": "^0.1.5",
+    "require": "^2.4.17"
+  }
+}
