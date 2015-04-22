@@ -1,5 +1,5 @@
 var nextMove = function () {
-  console.log( 'Hello, world!' );
+  return Math.random();
 };
 
 module.exports = { nextMove : nextMove };

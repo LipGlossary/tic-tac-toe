@@ -7,10 +7,10 @@ var files = fs.readdirSync( botPath );
 
 for( var i = 0; i < files.length; i++ ) {
   var file = files[i];
-  var tag = file.slice(0,-3);
-  bots[tag] = require( botPath + '/' + file );
-  bots[tag].seed = i;
-  console.log( bots[tag] );
+  bots[i] = require( botPath + '/' + file );
+  bots[i].name = file.slice(0,-3);
+  bots[i].wins = 0;
+  bots[i].losses = 0;
 }
 
 /**********************************    TUI    *********************************/
@@ -122,9 +122,40 @@ var game = blessed.box({
 top.setData( [ [ player1 + ': ' + p1score, 'versus', player2 + ': ' + p2score ] ] );
 game.setContent( genBoard(board) );
 
+for ( bot in bots ) {
+  right.setLine( +bot, '\t' + bots[bot].wins + '\t/\t' + bots[bot].losses + ' \t' + bots[bot].name );
+}
+
 // Quit on Escape, q, or Control-C.
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
   return process.exit(0);
 });
 
 screen.render();
+
+/********************************    battle    ********************************/
+
+var runRound = function () {
+  for ( p1 in bots ) {
+    for ( p2 in bots ) {
+      if ( +p2 > +p1 ) {
+        var p1move = bots[p1].nextMove();
+        var p2move = bots[p2].nextMove();
+        if ( p1move > p2move ) {
+          bots[p1].wins++;
+          bots[p2].losses++;
+        } else {
+          bots[p2].wins++;
+          bots[p1].losses++;
+        }
+        right.setLine( +p1, '\t' + bots[p1].wins + '\t/\t' + bots[p1].losses + ' \t' + bots[p1].name );
+        right.setLine( +p2, '\t' + bots[p2].wins + '\t/\t' + bots[p2].losses + ' \t' + bots[p2].name );
+        screen.render();
+      }
+    }
+  }
+};
+
+for( var rounds = 0; rounds < 3; rounds++ ) {
+  runRound();
+}
