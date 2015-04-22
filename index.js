@@ -4,16 +4,22 @@ var fs = require( 'fs' );
 var botPath = __dirname + '/bots'
 var bots = {};
 var files = fs.readdirSync( botPath );
+var leaderboard = [
+  [ ' NAME ', ' WINS ', ' LOSSES ' ],
+  [ '------', '------', '--------' ]
+];
 
 for( var i = 0; i < files.length; i++ ) {
   var file = files[i];
+  var name = file.slice(0,-3);
   bots[i] = require( botPath + '/' + file );
-  bots[i].name = file.slice(0,-3);
+  bots[i].name = name;
   bots[i].wins = 0;
   bots[i].losses = 0;
+  leaderboard.push( [ name, '0', '0' ] );
 }
 
-/**********************************    TUI    *********************************/
+/****************************    board drawing    *****************************/
 
 var player1 = 'Foo';
 var player2 = 'Bar';
@@ -68,6 +74,8 @@ var genBoard = function ( board ) {
        + nl + spacer;
 };
 
+/**********************************    TUI    *********************************/
+
 var blessed = require('blessed');
 var screen = blessed.screen({ autoPadding: false });
 
@@ -78,20 +86,30 @@ var top = blessed.table({
   width: '60%-2',
   tags: true,
   align: 'center',
+  border: 'bg',
+  noCellBorders: true,
   style: {
+    border: {
+      bg: '#222222',
+      fg: '#222222'
+    },
     header: {
       bg: 'white',
       fg: 'black'
+    },
+    cell: {
+      bg: '#222222',
+      fg: 'white'
     }
   },
   data: null
 });
 var left = blessed.box({
   parent: screen,
-  top: '10%',
+  top: '25%',
   left: '0%',
   width: '60%',
-  height: '90%',
+  height: '75%',
 });
 var right = blessed.box({
   parent: screen,
@@ -103,9 +121,21 @@ var right = blessed.box({
   border: { type: 'line' },
   style: { border: { fg: 'white' } }
 });
+
+var stats = blessed.table({
+  parent: right,
+  top: '0%+2',
+  left: '0%+1',
+  data: null,
+  align: 'center',
+  tags: true,
+  width: '100%-2',
+  noCellBorders: true,
+  style: { header: { bold: true } }
+});
 var game = blessed.box({
   parent: left,
-  top: 'center',
+  top: '0%+3',
   left: 'center',
   width: 'shrink',
   height: 'shrink',
@@ -119,12 +149,12 @@ var game = blessed.box({
   }
 });
 
-top.setData( [ [ player1 + ': ' + p1score, 'versus', player2 + ': ' + p2score ] ] );
+top.setData( [
+  [ player1, 'versus', player2 ],
+  [ p1score.toString(), ' ', p2score.toString() ]
+] );
 game.setContent( genBoard(board) );
-
-for ( bot in bots ) {
-  right.setLine( +bot, '\t' + bots[bot].wins + '\t/\t' + bots[bot].losses + ' \t' + bots[bot].name );
-}
+stats.setData( leaderboard );
 
 // Quit on Escape, q, or Control-C.
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
@@ -148,8 +178,11 @@ var runRound = function () {
           bots[p2].wins++;
           bots[p1].losses++;
         }
-        right.setLine( +p1, '\t' + bots[p1].wins + '\t/\t' + bots[p1].losses + ' \t' + bots[p1].name );
-        right.setLine( +p2, '\t' + bots[p2].wins + '\t/\t' + bots[p2].losses + ' \t' + bots[p2].name );
+        leaderboard[+p1+2][1] = bots[p1].wins.toString();
+        leaderboard[+p1+2][2] = bots[p1].losses.toString();
+        leaderboard[+p2+2][1] = bots[p2].wins.toString();
+        leaderboard[+p2+2][2] = bots[p2].losses.toString();
+        stats.setData( leaderboard );
         screen.render();
       }
     }
