@@ -1,4 +1,4 @@
-var nextMove = function () {
+var nextMove = function ( board, mine, opp, space ) {
   return Math.random();
 };
 

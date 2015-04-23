@@ -4,10 +4,6 @@ var fs = require( 'fs' );
 var botPath = __dirname + '/bots'
 var bots = {};
 var files = fs.readdirSync( botPath );
-var leaderboard = [
-  [ ' NAME ', ' WINS ', ' LOSSES ' ],
-  [ '------', '------', '--------' ]
-];
 
 for( var i = 0; i < files.length; i++ ) {
   var file = files[i];
@@ -16,15 +12,15 @@ for( var i = 0; i < files.length; i++ ) {
   bots[i].name = name;
   bots[i].wins = 0;
   bots[i].losses = 0;
-  leaderboard.push( [ name, '0', '0' ] );
+  bots[i].ties = 0;
 }
 
-/****************************    board drawing    *****************************/
+/****************************    board settings    ****************************/
 
-var player1 = 'Foo';
-var player2 = 'Bar';
-var p1score = 2;
-var p2score = 3;
+var player1 = '';
+var player2 = '';
+var p1score = 0;
+var p2score = 0;
 
 /*
        |       |       
@@ -47,35 +43,29 @@ var x      = 'X';
 var o      = 'O';
 var xColor = 'red';
 var oColor = 'green';
-var board = [
+var empty  = [
   [ blank, blank, blank ],
   [ blank, blank, blank ],
   [ blank, blank, blank ]
 ];
 
-var genCell = function ( cell ) {
-  if ( cell === x ) {
-    return '{' + xColor + '-fg}' + x + '{/' + xColor + '-fg}';
-  } else if ( cell === o ) {
-    return '{' + oColor + '-fg}' + o + '{/' + oColor + '-fg}';
-  } else {
-    return blank;
+var cloneBoard = function ( board ) {
+  var clone = new Array();
+  for ( var i = 0; i < 3; i++ ) {
+    var row = new Array();
+    for ( var j = 0; j < 3; j++ ) {
+      row.push( board[i][j] );
+    }
+    clone.push( row );
   }
+  return clone;
 };
 
-var genRow = function ( row ) {
-  return '   ' + genCell(row[0]) + '   |   ' + genCell(row[1]) + '   |   ' + genCell(row[2]) + '   ';
+var newBoard = function () {
+  return cloneBoard( empty );
 };
 
-var genBoard = function ( board ) {
-  return spacer + nl
-       + genRow( board[0] )
-       + nl + spacer + nl + line + nl + spacer + nl
-       + genRow( board[1] )
-       + nl + spacer + nl + line + nl + spacer + nl
-       + genRow( board[2] )
-       + nl + spacer;
-};
+var board = newBoard();
 
 /**********************************    TUI    *********************************/
 
@@ -86,24 +76,16 @@ var top = blessed.table({
   parent: screen,
   top: '0%+1',
   left: '0%+1',
-  width: '60%-2',
+  width: '50%-2',
   tags: true,
   align: 'center',
   border: 'bg',
   noCellBorders: true,
   style: {
-    border: {
-      bg: '#222222',
-      fg: '#222222'
-    },
     header: {
       bg: 'white',
       fg: 'black'
     },
-    cell: {
-      bg: '#222222',
-      fg: 'white'
-    }
   },
   data: null
 });
@@ -111,14 +93,14 @@ var left = blessed.box({
   parent: screen,
   top: '25%',
   left: '0%',
-  width: '60%',
+  width: '50%',
   height: '75%',
 });
 var right = blessed.box({
   parent: screen,
   top: 'center',
-  left: '60%',
-  width: '40%',
+  left: '50%',
+  width: '50%',
   height: '100%',
   tags: true,
   border: { type: 'line' },
@@ -152,19 +134,77 @@ var game = blessed.box({
   }
 });
 
-top.setData( [
-  [ player1, 'versus', player2 ],
-  [ p1score.toString(), ' ', p2score.toString() ]
-] );
-game.setContent( genBoard(board) );
-stats.setData( leaderboard );
+var drawTop = function ( elem, p1, p2 ) {
+  elem.setData( [
+    [ p1.name, 'versus', p2.name ],
+    [
+      '{green-fg}' + p1.wins + '{/green-fg} / {red-fg}' + p1.losses + '{/red-fg} / {cyan-fg}' + p1.ties + '{/cyan-fg}',
+      ' ',
+      '{green-fg}' + p2.wins + '{/green-fg} / {red-fg}' + p2.losses + '{/red-fg} / {cyan-fg}' + p2.ties + '{/cyan-fg}',
+    ]
+  ]);
+  screen.render();
+};
+
+var drawCell = function ( cell ) {
+  if ( cell === x ) {
+    return '{' + xColor + '-fg}' + x + '{/' + xColor + '-fg}';
+  } else if ( cell === o ) {
+    return '{' + oColor + '-fg}' + o + '{/' + oColor + '-fg}';
+  } else {
+    return blank;
+  }
+};
+
+var drawRow = function ( row ) {
+  return '   ' + drawCell(row[0]) + '   |   ' + drawCell(row[1]) + '   |   ' + drawCell(row[2]) + '   ';
+};
+
+var drawBoard = function ( board ) {
+  return spacer + nl
+       + drawRow( board[0] )
+       + nl + spacer + nl + line + nl + spacer + nl
+       + drawRow( board[1] )
+       + nl + spacer + nl + line + nl + spacer + nl
+       + drawRow( board[2] )
+       + nl + spacer;
+};
+
+var drawGame = function ( elem, board ) {
+  elem.setContent( drawBoard(board) );
+  screen.render();
+};
+
+var genLeaderboard = function () {
+  var leaderboard = [
+    [ ' NAME ', ' WINS ', ' LOSSES ', ' TIES ' ],
+    [ '------', '------', '--------', '------' ]
+  ];
+  for ( bot in bots ) {
+    var player = bots[bot];
+    leaderboard.push( [
+      player.name,
+      player.wins.toString(),
+      player.losses.toString(),
+      player.ties.toString()
+    ] );
+  }
+  return leaderboard;
+};
+
+var drawStats = function ( elem ) {
+  elem.setData( genLeaderboard() );
+  screen.render();
+}
+
+drawTop( top, bots['0'], bots['1'] );
+drawGame( game, board );
+drawStats( stats );
 
 // Quit on Escape, q, or Control-C.
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
   return process.exit(0);
 });
-
-screen.render();
 
 /********************************    battle    ********************************/
 
@@ -174,8 +214,12 @@ player 1 goes first
 do for player 1 and then player 2
   check for stalemate
   ask player for a move (give player the board and the symbols)
-    their symbol, opponent symbol, blank symbol
+    clone the board so they can't cheat
+    parameters: board, their symbol, opponent symbol, blank symbol
+    return: [ row, col ]
+    forfeit turn if timeout
   make sure the move is legal
+    forfeit turn if illegal
   check for win
     check horizontal from move cell
     check vertical from move cell
@@ -184,27 +228,27 @@ do for player 1 and then player 2
 */
 
 var runGame = function ( p1, p2 ) {
-  var p1move = bots[p1].nextMove();
-  var p2move = bots[p2].nextMove();
-  if ( p1move > p2move ) {
+  var p1move = bots[p1].nextMove( cloneBoard(board), x, o, blank );
+  var p2move = bots[p2].nextMove( cloneBoard(board), x, o, blank );
+  if ( Math.floor(p1move*10) === Math.floor(p2move*10) ) {
+    bots[p1].ties++;
+    bots[p2].ties++;
+  } else if ( p1move > p2move ) {
     bots[p1].wins++;
     bots[p2].losses++;
   } else {
     bots[p2].wins++;
     bots[p1].losses++;
   }
-  leaderboard[+p1+2][1] = bots[p1].wins.toString();
-  leaderboard[+p1+2][2] = bots[p1].losses.toString();
-  leaderboard[+p2+2][1] = bots[p2].wins.toString();
-  leaderboard[+p2+2][2] = bots[p2].losses.toString();
-  stats.setData( leaderboard );
-  screen.render();
+  drawStats( stats );
 };
 
 var runRound = function () {
   for ( p1 in bots ) {
     for ( p2 in bots ) {
-      runGame( p1, p2 );
+      if ( p1 !== p2 ) {
+        runGame( p1, p2 );
+      }
     }
   }
 };
