@@ -65,8 +65,6 @@ var newBoard = function () {
   return cloneBoard( empty );
 };
 
-var board = newBoard();
-
 /**********************************    TUI    *********************************/
 
 var blessed = require('blessed');
@@ -198,7 +196,7 @@ var drawStats = function ( elem ) {
 }
 
 drawTop( top, bots['0'], bots['1'] );
-drawGame( game, board );
+drawGame( game, newBoard() );
 drawStats( stats );
 
 // Quit on Escape, q, or Control-C.
@@ -208,37 +206,70 @@ screen.key(['escape', 'q', 'C-c'], function(ch, key) {
 
 /********************************    battle    ********************************/
 
-/****    turn-taking logic thoughts    ****
-start with empty board
-player 1 goes first
-do for player 1 and then player 2
-  check for stalemate
-  ask player for a move (give player the board and the symbols)
-    clone the board so they can't cheat
-    parameters: board, their symbol, opponent symbol, blank symbol
-    return: [ row, col ]
-    forfeit turn if timeout
-  make sure the move is legal
-    forfeit turn if illegal
-  check for win
-    check horizontal from move cell
-    check vertical from move cell
-    if move cell is in diagonal lane
-      check diagonal from move cell 
-*/
+var isStalemate = function ( board, blank ) {
+  for( var i = 0; i < board.length; i++ ) {
+    for( var j = 0; j < board.length; j++ ) {
+      if ( board[i][j] === blank ) {
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
+var match3 = function ( a, b, c ) {
+  if ( a === b && a === c ) { return true; }
+  return false;
+};
+
+var checkWin = function ( player, board, row, col ) {
+  var win = false;
+  win = win || match3( board[row][0], board[row][1], board[row][2] );
+  win = win || match3( board[0][col], board[1][col], board[2][col] );
+  if ( (row+col) === 2 ) {
+    win = win || match3( board[0][2], board[1][1], board[2][0] );
+  }
+  if ( row === col ) {
+    win = win || match3( board[0][0], board[1][1], board[2][2] );
+  }
+  return win;
+};
+
+var getMove = function ( player, board, ours, theirs, blank ) {
+  // TODO: forfeit turn if timeout and display message
+  var move = player.nextMove( cloneBoard(board), ours, theirs, blank );
+  var row = move[0];
+  var col = move[1];
+  // TODO: display message for illegal turn
+  if ( board[row][col] !== blank ) { return false; }
+  board[row][col] = ours;
+  drawGame( game, board );
+  return checkWin( player, board, row, col );
+};
 
 var runGame = function ( p1, p2 ) {
-  var p1move = bots[p1].nextMove( cloneBoard(board), x, o, blank );
-  var p2move = bots[p2].nextMove( cloneBoard(board), x, o, blank );
-  if ( Math.floor(p1move*10) === Math.floor(p2move*10) ) {
-    bots[p1].ties++;
-    bots[p2].ties++;
-  } else if ( p1move > p2move ) {
-    bots[p1].wins++;
-    bots[p2].losses++;
+  var board = newBoard();
+  var winner = null;
+  while( !isStalemate( board, blank ) ) {
+    var p1win = getMove( p1, board, x, o, blank );
+    if ( p1win ) {
+      winner = [ p1, p2 ];
+      break;
+    }
+    var p2win = getMove( p2, board, o, x, blank );
+    if ( p2win ) {
+      winner = [ p2, p1 ];
+      break;
+    }
+  }
+  if ( winner === null ) {
+    p1.ties++;
+    p2.ties++;
+    // TODO: display message
   } else {
-    bots[p2].wins++;
-    bots[p1].losses++;
+    winner[0].wins++;
+    winner[1].losses++;
+    // TODO: display message
   }
   drawStats( stats );
 };
@@ -247,7 +278,7 @@ var runRound = function () {
   for ( p1 in bots ) {
     for ( p2 in bots ) {
       if ( p1 !== p2 ) {
-        runGame( p1, p2 );
+        runGame( bots[p1], bots[p2] );
       }
     }
   }
