@@ -94,6 +94,20 @@ var left = blessed.box({
   width: '50%',
   height: '75%',
 });
+var bottom = blessed.box({
+  parent: screen,
+  bottom: true,
+  left: '0%',
+  width: '50%',
+  height: 'shrink',
+  tags: true,
+  align: 'center',
+  border: 'bg',
+  content: null,
+  style: {
+    fg: 'cyan'
+  }
+});
 var right = blessed.box({
   parent: screen,
   top: 'center',
@@ -173,6 +187,16 @@ var drawGame = function ( elem, board ) {
   screen.render();
 };
 
+var clearMessage = function ( elem ) {
+  elem.setContent( null );
+  screen.render();
+}
+
+var drawMessage = function ( elem, message ) {
+  elem.setContent( message );
+  screen.render();
+};
+
 var genLeaderboard = function () {
   var leaderboard = [
     [ ' NAME ', ' WINS ', ' LOSSES ', ' TIES ' ],
@@ -236,18 +260,23 @@ var checkWin = function ( player, board, row, col ) {
 };
 
 var getMove = function ( player, board, ours, theirs, blank ) {
+  clearMessage( bottom );
   // TODO: forfeit turn if timeout and display message
   var move = player.nextMove( cloneBoard(board), ours, theirs, blank );
   var row = move[0];
   var col = move[1];
-  // TODO: display message for illegal turn
-  if ( board[row][col] !== blank ) { return false; }
+  if ( board[row][col] !== blank ) { 
+    drawMessage( bottom, 'Player ' + player.name + ' made an illegal move!' );
+    return false;
+  }
   board[row][col] = ours;
   drawGame( game, board );
   return checkWin( player, board, row, col );
 };
 
 var runGame = function ( p1, p2 ) {
+  clearMessage( bottom );
+  drawTop( top, p1, p2 );
   var board = newBoard();
   var winner = null;
   while( !isStalemate( board, blank ) ) {
@@ -265,11 +294,11 @@ var runGame = function ( p1, p2 ) {
   if ( winner === null ) {
     p1.ties++;
     p2.ties++;
-    // TODO: display message
+    drawMessage( bottom, "It's a tie!" );
   } else {
     winner[0].wins++;
     winner[1].losses++;
-    // TODO: display message
+    drawMessage( bottom, 'Player ' + winner[0].name + ' wins!' );
   }
   drawStats( stats );
 };
