@@ -25,11 +25,6 @@ var player1 = 'Foo';
 var player2 = 'Bar';
 var p1score = 2;
 var p2score = 3;
-var board = [
-  [ 'X', 'O', 'X' ],
-  [ 'O', 'X', 'O' ],
-  [ 'X', 'O', 'X' ]
-];
 
 /*
        |       |       
@@ -47,16 +42,24 @@ var board = [
 var spacer = '       |       |       ';
 var line   = '-------+-------+-------';
 var nl     = '\n';
+var blank  = ' ';
 var x      = 'X';
 var o      = 'O';
 var xColor = 'red';
 var oColor = 'green';
+var board = [
+  [ blank, blank, blank ],
+  [ blank, blank, blank ],
+  [ blank, blank, blank ]
+];
 
 var genCell = function ( cell ) {
   if ( cell === x ) {
     return '{' + xColor + '-fg}' + x + '{/' + xColor + '-fg}';
-  } else {
+  } else if ( cell === o ) {
     return '{' + oColor + '-fg}' + o + '{/' + oColor + '-fg}';
+  } else {
+    return blank;
   }
 };
 
@@ -165,26 +168,43 @@ screen.render();
 
 /********************************    battle    ********************************/
 
+/****    turn-taking logic thoughts    ****
+start with empty board
+player 1 goes first
+do for player 1 and then player 2
+  check for stalemate
+  ask player for a move (give player the board and the symbols)
+    their symbol, opponent symbol, blank symbol
+  make sure the move is legal
+  check for win
+    check horizontal from move cell
+    check vertical from move cell
+    if move cell is in diagonal lane
+      check diagonal from move cell 
+*/
+
+var runGame = function ( p1, p2 ) {
+  var p1move = bots[p1].nextMove();
+  var p2move = bots[p2].nextMove();
+  if ( p1move > p2move ) {
+    bots[p1].wins++;
+    bots[p2].losses++;
+  } else {
+    bots[p2].wins++;
+    bots[p1].losses++;
+  }
+  leaderboard[+p1+2][1] = bots[p1].wins.toString();
+  leaderboard[+p1+2][2] = bots[p1].losses.toString();
+  leaderboard[+p2+2][1] = bots[p2].wins.toString();
+  leaderboard[+p2+2][2] = bots[p2].losses.toString();
+  stats.setData( leaderboard );
+  screen.render();
+};
+
 var runRound = function () {
   for ( p1 in bots ) {
     for ( p2 in bots ) {
-      if ( +p2 > +p1 ) {
-        var p1move = bots[p1].nextMove();
-        var p2move = bots[p2].nextMove();
-        if ( p1move > p2move ) {
-          bots[p1].wins++;
-          bots[p2].losses++;
-        } else {
-          bots[p2].wins++;
-          bots[p1].losses++;
-        }
-        leaderboard[+p1+2][1] = bots[p1].wins.toString();
-        leaderboard[+p1+2][2] = bots[p1].losses.toString();
-        leaderboard[+p2+2][1] = bots[p2].wins.toString();
-        leaderboard[+p2+2][2] = bots[p2].losses.toString();
-        stats.setData( leaderboard );
-        screen.render();
-      }
+      runGame( p1, p2 );
     }
   }
 };
