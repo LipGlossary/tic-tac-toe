@@ -68,7 +68,10 @@ var newBoard = function () {
 /**********************************    TUI    *********************************/
 
 var blessed = require('blessed');
-var screen = blessed.screen({ autoPadding: false });
+var screen = blessed.screen({
+  autoPadding: false,
+  title: 'Tic-Tac-Toe Tournament!'
+});
 
 var top = blessed.table({
   parent: screen,
